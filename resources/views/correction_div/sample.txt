@@ -1,0 +1,525 @@
+import React, { useState } from 'react';
+import { FileText, MessageSquare, CheckCircle, User, Briefcase, Filter, Edit, X } from 'lucide-react';
+
+// 필드별 드롭다운 컴포넌트 - 모달에서만 사용
+const FieldDropdown = ({ options, value, onChange }) => {
+  return (
+    <select 
+      className="w-full border border-gray-300 rounded px-3 py-2"
+      value={value || ''}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <option value="">선택</option>
+      {options.map(option => (
+        <option key={option} value={option}>{option}</option>
+      ))}
+    </select>
+  );
+};
+
+// 날짜 선택 컴포넌트 - 모달에서만 사용
+const DatePicker = ({ value, onChange }) => {
+  return (
+    <input 
+      type="date" 
+      className="w-full border border-gray-300 rounded px-3 py-2"
+      value={value || ''}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  );
+};
+
+// 문서 카드 컴포넌트
+const DocumentCard = ({ document, onEdit }) => {
+  const [showMemoModal, setShowMemoModal] = useState(false);
+  const [viewingMemo, setViewingMemo] = useState('');
+  
+  // 분류에 따른 배경색 설정
+  const getClassificationColor = (classification) => {
+    switch(classification) {
+      case '명령': return 'bg-blue-50';
+      case '보정': return 'bg-orange-50';
+      case '기타': return 'bg-purple-50';
+      case '예외': return 'bg-red-50';
+      default: return 'bg-gray-50';
+    }
+  };
+  
+  // 제출여부에 따른 배지 색상 설정
+  const getSubmissionStatusColor = (status) => {
+    switch(status) {
+      case '미제출': return 'bg-gray-100 text-gray-600';
+      case '제출완료': return 'bg-green-100 text-green-800';
+      case '안내완료': return 'bg-blue-100 text-blue-800';
+      case '처리완료': return 'bg-purple-100 text-purple-800';
+      case '연기신청': return 'bg-yellow-100 text-yellow-800';
+      case '제출불요': return 'bg-gray-100 text-gray-800';
+      case '계약해지': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  // 날짜 포맷 함수
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+  };
+  
+  // 마감일 계산
+  const getDueStatus = () => {
+    if (!document.dueDate) return null;
+    
+    const today = new Date();
+    const dueDate = new Date(document.dueDate);
+    const diffDays = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      return { text: '기한초과', class: 'bg-red-100 text-red-800' };
+    } else if (diffDays <= 3) {
+      return { text: `D-${diffDays}`, class: 'bg-orange-100 text-orange-800' };
+    } else if (diffDays <= 7) {
+      return { text: `D-${diffDays}`, class: 'bg-yellow-100 text-yellow-800' };
+    } else {
+      return { text: `D-${diffDays}`, class: 'bg-blue-50 text-blue-600' };
+    }
+    
+    return null;
+  };
+  
+  const dueStatus = getDueStatus();
+  
+  return (
+    <div className={`rounded-lg shadow-md p-4 transition-all duration-200 hover:shadow-lg ${getClassificationColor(document.classification)} h-full flex flex-col relative`}>
+      {/* 분류 표시 - 상단에 추가 (읽기 전용) */}
+      <div className="absolute top-0 right-0 px-2 py-1 text-xs font-medium rounded-bl-lg rounded-tr-lg flex items-center relative" style={{
+        backgroundColor: document.classification === '명령' ? 'rgba(59, 130, 246, 0.7)' : 
+                        document.classification === '보정' ? 'rgba(249, 115, 22, 0.7)' :
+                        document.classification === '기타' ? 'rgba(139, 92, 246, 0.7)' :
+                        document.classification === '예외' ? 'rgba(239, 68, 68, 0.7)' : 'rgba(156, 163, 175, 0.7)',
+        color: 'white'
+      }}>
+        <span>{document.classification || '미분류'}</span>
+      </div>
+      
+      {/* 헤더 영역 */}
+      <div className="flex justify-between items-start mb-2 mt-2">
+        {/* 고객명 */}
+        <div className="flex items-center gap-1.5">
+          <span className="font-semibold">{document.customerName}</span>
+          {document.memo && (
+            <button 
+              className="text-gray-500 hover:text-blue-600"
+              onClick={() => {
+                setViewingMemo(document.memo || '');
+                setShowMemoModal(true);
+              }}
+            >
+              <MessageSquare size={16} />
+            </button>
+          )}
+        </div>
+        
+        {/* 기한 배지만 표시 */}
+        <div className="flex items-center">
+          {dueStatus && (
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${dueStatus.class}`}>
+              {dueStatus.text}
+            </span>
+          )}
+        </div>
+      </div>
+      
+      {/* 법원 및 사건번호 */}
+      <div className="text-gray-600 text-xs mb-2 truncate">
+        {document.court} | {document.caseNumber}
+      </div>
+      
+      {/* 문서명 - 최대 2줄 표시하고 말줄임표 */}
+      <div className="flex items-start gap-1.5 mb-2">
+        <FileText size={14} className="text-gray-500 mt-0.5 flex-shrink-0" />
+        <span className="text-gray-700 text-sm line-clamp-2">{document.documentType}</span>
+      </div>
+      
+      {/* 날짜 정보 - 한 줄로 압축 */}
+      <div className="grid grid-cols-3 gap-1 text-xs mb-2">
+        <div className="flex items-center">
+          <span className="text-gray-500 mr-1">발신:</span>
+          <span className="text-gray-700">{formatDate(document.sendDate)}</span>
+        </div>
+        <div className="flex items-center">
+          <span className="text-gray-500 mr-1">수신:</span>
+          <span className="text-gray-700">{formatDate(document.receiveDate)}</span>
+        </div>
+        <div className="flex items-center">
+          <span className="text-gray-500 mr-1">기한:</span>
+          <span className="text-gray-700">{formatDate(document.dueDate)}</span>
+        </div>
+      </div>
+      
+      {/* 담당자 정보 */}
+      <div className="grid grid-cols-2 gap-1 text-xs border-t pt-2 mt-auto">
+        <div className="flex items-center gap-1">
+          <User size={12} className="text-gray-500" />
+          <span className="text-gray-700 truncate">상담: {document.consultant || '미지정'}</span>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          <Briefcase size={12} className="text-gray-500" />
+          <span className="text-gray-700 truncate">담당: {document.manager || '미지정'}</span>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          <span className={`text-xs px-1.5 py-0.5 rounded-full whitespace-nowrap ${getSubmissionStatusColor(document.submissionStatus)}`}>
+            {document.submissionStatus}
+          </span>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          {document.submissionDate ? (
+            <>
+              <CheckCircle size={12} className="text-gray-500" />
+              <span className="text-gray-700 truncate">제출: {formatDate(document.submissionDate)}</span>
+            </>
+          ) : (
+            <span className="text-gray-400">미제출</span>
+          )}
+        </div>
+        
+        <div className="flex items-center col-span-2 mt-1 justify-between">
+          {document.hasFile && (
+            <button className="text-blue-600 hover:text-blue-800">
+              <FileText size={14} />
+            </button>
+          )}
+          
+          {/* 일괄 수정 버튼 추가 */}
+          <button 
+            className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-300 rounded-md hover:bg-blue-50"
+            onClick={() => onEdit(document)}
+          >
+            <Edit size={12} />
+            <span>정보 수정</span>
+          </button>
+        </div>
+      </div>
+      
+      {/* 메모 모달 (읽기 전용) */}
+      {showMemoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-semibold">메모</h3>
+              <button 
+                className="text-gray-400 hover:text-gray-600"
+                onClick={() => setShowMemoModal(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="w-full border border-gray-200 rounded p-3 min-h-32 mb-4 bg-gray-50 whitespace-pre-wrap">
+              {viewingMemo || '메모가 없습니다.'}
+            </div>
+            <div className="flex justify-end">
+              <button 
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                onClick={() => setShowMemoModal(false)}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// 일괄 편집 모달 컴포넌트
+const EditModal = ({ document, onClose, onSave }) => {
+  const [formData, setFormData] = useState({
+    classification: document.classification || '',
+    consultant: document.consultant || '',
+    manager: document.manager || '',
+    dueDate: document.dueDate || '',
+    submissionStatus: document.submissionStatus || '',
+    submissionDate: document.submissionDate || '',
+    memo: document.memo || ''
+  });
+  
+  // 샘플 옵션
+  const classificationOptions = ['선택없음', '명령', '기타', '보정', '예외'];
+  const consultantOptions = ['김변호사', '박변호사', '이변호사', '최변호사', '윤변호사'];
+  const managerOptions = ['이담당', '한담당', '조담당', '장담당', '심담당'];
+  const submissionStatusOptions = ['미제출', '제출완료', '안내완료', '처리완료', '연기신청', '제출불요', '계약해지'];
+  
+  const handleChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-90 overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">문서 정보 수정</h3>
+          <button 
+            className="text-gray-400 hover:text-gray-600"
+            onClick={onClose}
+          >
+            <X size={18} />
+          </button>
+        </div>
+        
+        <div className="space-y-4">
+          {/* 고객 & 문서 정보 (읽기 전용) */}
+          <div className="bg-gray-50 p-3 rounded">
+            <p className="font-semibold">{document.customerName}</p>
+            <p className="text-sm text-gray-600">{document.court} | {document.caseNumber}</p>
+            <p className="text-sm text-gray-600">{document.documentType}</p>
+          </div>
+          
+          {/* 분류 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">분류</label>
+            <FieldDropdown 
+              options={classificationOptions}
+              value={formData.classification}
+              onChange={(value) => handleChange('classification', value)}
+            />
+          </div>
+          
+          {/* 상담자 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">상담자</label>
+            <FieldDropdown 
+              options={consultantOptions}
+              value={formData.consultant}
+              onChange={(value) => handleChange('consultant', value)}
+            />
+          </div>
+          
+          {/* 담당자 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">담당자</label>
+            <FieldDropdown 
+              options={managerOptions}
+              value={formData.manager}
+              onChange={(value) => handleChange('manager', value)}
+            />
+          </div>
+          
+          {/* 제출기한 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">제출기한</label>
+            <DatePicker 
+              value={formData.dueDate}
+              onChange={(value) => handleChange('dueDate', value)}
+            />
+          </div>
+          
+          {/* 제출여부 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">제출여부</label>
+            <FieldDropdown 
+              options={submissionStatusOptions}
+              value={formData.submissionStatus}
+              onChange={(value) => handleChange('submissionStatus', value)}
+            />
+          </div>
+          
+          {/* 제출일자 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">제출일자</label>
+            <DatePicker 
+              value={formData.submissionDate}
+              onChange={(value) => handleChange('submissionDate', value)}
+            />
+          </div>
+          
+          {/* 메모 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">메모</label>
+            <textarea
+              className="w-full border border-gray-300 rounded px-3 py-2 h-24"
+              value={formData.memo}
+              onChange={(e) => handleChange('memo', e.target.value)}
+              placeholder="메모를 입력하세요..."
+            />
+          </div>
+        </div>
+        
+        <div className="flex justify-end gap-2 mt-6">
+          <button 
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+            onClick={onClose}
+          >
+            취소
+          </button>
+          <button 
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            onClick={() => onSave(formData)}
+          >
+            저장
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 메인 컴포넌트
+const DocumentManagementPage = () => {
+  // 탭 상태 관리
+  const [activeTab, setActiveTab] = useState('미분류');
+  // 모달 상태 관리
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [currentDocument, setCurrentDocument] = useState(null);
+  
+  // 문서 데이터 상태
+  const [documents, setDocuments] = useState([
+    {
+      id: 1,
+      sendDate: '2025-04-10',
+      receiveDate: '2025-04-12',
+      court: '서울중앙지방법원',
+      caseNumber: '2025가합12345',
+      customerName: '홍길동',
+      documentType: '특허권 침해금지 가처분 신청에 관한 보정명령 통지서',
+      classification: '보정',
+      consultant: '김변호사',
+      manager: '이담당',
+      dueDate: '2025-04-25',
+      submissionStatus: '제출완료',
+      submissionDate: '2025-04-20',
+      hasFile: true,
+      memo: '고객이 요청한 수정사항 반영 완료. 특이사항 없음.'
+    },
+    {
+      id: 2,
+      sendDate: '2025-04-09',
+      receiveDate: '2025-04-11',
+      court: '서울가정법원',
+      caseNumber: '2025드12345',
+      customerName: '김서울',
+      documentType: '이혼 및 양육권 분쟁에 관한 심문기일 통지서',
+      classification: '명령',
+      consultant: '박변호사',
+      manager: '',
+      dueDate: '2025-04-18',
+      submissionStatus: '안내완료',
+      submissionDate: '',
+      hasFile: true,
+      memo: ''
+    },
+    {
+      id: 3,
+      sendDate: '2025-04-08',
+      receiveDate: '2025-04-10',
+      court: '서울서부지방법원',
+      caseNumber: '2025나12345',
+      customerName: '이부산',
+      documentType: '보정명령',
+      classification: '선택없음',
+      consultant: '',
+      manager: '',
+      dueDate: '2025-04-17',
+      submissionStatus: '처리완료',
+      submissionDate: '2025-04-15',
+      hasFile: true,
+      memo: '고객에게 문자로 안내 완료'
+    }
+  ]);
+
+  // 문서 업데이트 함수
+  const updateDocument = (docId, updatedFields) => {
+    setDocuments(prevDocs => 
+      prevDocs.map(doc => 
+        doc.id === docId ? { ...doc, ...updatedFields } : doc
+      )
+    );
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto p-4 bg-gray-50 min-h-screen">
+      {/* 헤더 */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">보정서 관리</h1>
+        
+        {/* 탭 필터링 */}
+        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+          {['미분류', '미제출', '처리완료', '담당자없음'].map((tab) => (
+            <button
+              key={tab}
+              className={`px-4 py-2 text-sm rounded-md transition-colors ${
+                activeTab === tab
+                  ? 'bg-white text-blue-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab}
+              <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-700">
+                {tab === '미분류' ? 2 : 
+                 tab === '미제출' ? 3 : 
+                 tab === '처리완료' ? 2 : 
+                 tab === '담당자없음' ? 1 : 0}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      {/* 툴바 및 액션 버튼 */}
+      <div className="flex justify-between items-center mb-4">
+        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          새 문서 등록
+        </button>
+        
+        <div className="flex items-center space-x-2">
+          <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            검색
+          </button>
+          
+          <button className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+            <Filter size={16} />
+            <span>필터</span>
+          </button>
+        </div>
+      </div>
+      
+      {/* 문서 카드 그리드 - 고정형 (한 행에 항상 3개) */}
+      <div className="grid grid-cols-3 gap-4">
+        {documents.map((doc) => (
+          <DocumentCard 
+            key={doc.id} 
+            document={doc}
+            onEdit={() => {
+              setCurrentDocument(doc);
+              setEditModalOpen(true);
+            }}
+          />
+        ))}
+      </div>
+      
+      {/* 일괄 편집 모달 */}
+      {editModalOpen && currentDocument && (
+        <EditModal 
+          document={currentDocument} 
+          onClose={() => setEditModalOpen(false)}
+          onSave={(updatedFields) => {
+            updateDocument(currentDocument.id, updatedFields);
+            setEditModalOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default DocumentManagementPage;

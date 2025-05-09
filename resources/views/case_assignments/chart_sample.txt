@@ -1,0 +1,199 @@
+import React, { useState } from 'react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
+
+// 샘플 데이터 - 실제 환경에서는 API나 DB에서 가져올 것입니다
+const generateSampleData = (months) => {
+  const staff = [
+    '김변호사', '이변호사', '박변호사', '최변호사', '정변호사', 
+    '강변호사', '조변호사', '윤변호사', '장변호사', '임변호사',
+    '한변호사', '오변호사', '신변호사', '권변호사', '황변호사',
+    '안변호사', '송변호사', '전변호사', '홍변호사', '문변호사'
+  ];
+  
+  const today = new Date();
+  const data = [];
+  
+  // 각 직원에 대해 데이터 생성
+  staff.forEach(name => {
+    let assigned = 0;
+    let submitted = 0;
+    
+    // 지정된 개월 수에 따라 데이터 합산
+    for (let i = 0; i < months; i++) {
+      // 월별 배당 사건 수 (7-12건 랜덤)
+      const monthlyAssigned = Math.floor(Math.random() * 6) + 7;
+      assigned += monthlyAssigned;
+      
+      // 제출 사건 수는 배당된 사건의 85-100% 랜덤
+      const submissionRate = 0.85 + (Math.random() * 0.15);
+      const monthlySubmitted = Math.floor(monthlyAssigned * submissionRate);
+      submitted += monthlySubmitted;
+    }
+    
+    data.push({
+      name,
+      배당사건: assigned,
+      제출사건: submitted
+    });
+  });
+  
+  // 배당 사건 수를 기준으로 내림차순 정렬
+  return data.sort((a, b) => b.배당사건 - a.배당사건);
+};
+
+const CaseAssignmentChart = () => {
+  // 필터 옵션 및 날짜 범위 계산
+  const getDateRange = (filterType) => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    let startDate = new Date();
+    let endDate = new Date(today);
+    
+    switch(filterType) {
+      case 'currentMonth':
+        startDate = new Date(currentYear, currentMonth, 1);
+        break;
+      case 'last2Months':
+        startDate = new Date(currentYear, currentMonth - 1, 1);
+        break;
+      case 'last3Months':
+        startDate = new Date(currentYear, currentMonth - 2, 1);
+        break;
+      case 'currentQuarter':
+        const currentQuarter = Math.floor(currentMonth / 3);
+        startDate = new Date(currentYear, currentQuarter * 3, 1);
+        break;
+      case 'lastQuarter':
+        const lastQuarter = Math.floor(currentMonth / 3) - 1;
+        const lastQuarterYear = lastQuarter < 0 ? currentYear - 1 : currentYear;
+        const lastQuarterStartMonth = lastQuarter < 0 ? 9 : lastQuarter * 3;
+        startDate = new Date(lastQuarterYear, lastQuarterStartMonth, 1);
+        endDate = new Date(lastQuarterYear, lastQuarterStartMonth + 3, 0);
+        break;
+      case 'currentYear':
+        startDate = new Date(currentYear, 0, 1);
+        break;
+      case 'lastYear':
+        startDate = new Date(currentYear - 1, 0, 1);
+        endDate = new Date(currentYear - 1, 11, 31);
+        break;
+      default:
+        startDate = new Date(currentYear, currentMonth - 1, 1);
+    }
+    
+    return {
+      start: startDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+      end: endDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+    };
+  };
+  
+  const filterOptions = [
+    { value: 'currentMonth', label: '당월', months: 1 },
+    { value: 'last2Months', label: '최근 2개월', months: 2 },
+    { value: 'last3Months', label: '최근 3개월', months: 3 },
+    { value: 'currentQuarter', label: '이번 분기', months: 3 },
+    { value: 'lastQuarter', label: '지난 분기', months: 3 },
+    { value: 'currentYear', label: '올해', months: new Date().getMonth() + 1 },
+    { value: 'lastYear', label: '지난해', months: 12 }
+  ];
+  
+  // 상태 관리 - 기본값은 최근 2개월
+  const [timeFilter, setTimeFilter] = useState('last2Months');
+  const [data, setData] = useState(generateSampleData(2));
+  const [dateRange, setDateRange] = useState(getDateRange('last2Months'));
+  
+  // 필터 변경 핸들러
+  const handleFilterChange = (e) => {
+    const filterValue = e.target.value;
+    const selectedFilter = filterOptions.find(option => option.value === filterValue);
+    setTimeFilter(filterValue);
+    setData(generateSampleData(selectedFilter.months));
+    setDateRange(getDateRange(filterValue));
+  };
+  
+  // 커스텀 툴팁 컴포넌트
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white shadow-lg p-4 rounded-md border border-gray-200">
+          <p className="font-bold text-gray-800">{label}</p>
+          {payload.map((entry, index) => (
+            <p key={index} style={{ color: entry.color }}>
+              {entry.name}: {entry.value}건
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6 max-w-6xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">담당자별 사건 배당 및 제출 현황</h2>
+        <div className="flex items-center">
+          <label htmlFor="timeFilter" className="mr-2 text-gray-700">기간:</label>
+          <select
+            id="timeFilter"
+            value={timeFilter}
+            onChange={handleFilterChange}
+            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
+          >
+            {filterOptions.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <span className="ml-4 text-sm text-gray-600">
+            {dateRange.start} ~ {dateRange.end}
+          </span>
+        </div>
+      </div>
+      
+      <div className="h-96">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+            barSize={20}
+          >
+            <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+            <XAxis 
+              dataKey="name" 
+              angle={-45} 
+              textAnchor="end" 
+              height={70} 
+              tick={{ fontSize: 12 }}
+            />
+            <YAxis 
+              label={{ value: '사건 수', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+              tickFormatter={(value) => `${value}건`}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend 
+              wrapperStyle={{ paddingTop: 20 }}
+              formatter={(value) => <span className="text-gray-800">{value}</span>}
+            />
+            <Bar dataKey="배당사건" fill="#9DB2FF" name="배당 사건" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="제출사건" fill="#ADE8B4" name="제출 사건" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      
+      <div className="mt-6 bg-blue-50 p-4 rounded-md">
+        <p className="text-sm text-gray-600">
+          * 배당 사건은 담당자에게 할당된 총 사건 수, 제출 사건은 법원에 제출 완료된 사건 수입니다.
+          <br />
+          * 데이터는 {filterOptions.find(o => o.value === timeFilter).label} ({dateRange.start} ~ {dateRange.end}) 기준으로 집계되었습니다.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default CaseAssignmentChart;

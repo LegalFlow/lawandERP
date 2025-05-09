@@ -1,0 +1,630 @@
+import React, { useState, useEffect } from 'react';
+import { Search, Download, FileText, Calendar, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+
+// 가상의 파일 데이터 (실제로는 API에서 가져올 것)
+const sampleFiles = [
+  '2025.04.18_2025개회60019_20250421_정유민_기타결정(명령).pdf',
+  '2025.04.18_2025개회54630_20250421_김민지_명의변경(대위변제)_및_계좌신고서(25.04.17.자).pdf',
+  '2025.04.19_2025개회60020_20250422_박서준_채권양도통지서.pdf',
+  '2025.04.19_2025개회60021_20250422_이지원_소송위임장.pdf',
+  '2025.04.20_2025개회60022_20250423_최현우_상속재산분할협의서.pdf',
+  '2025.04.20_2025개회60023_20250423_강민서_의견서.pdf',
+  '2025.04.20_2025개회60024_20250423_조은지_소장.pdf',
+  '2025.04.21_2025개회60025_20250424_한지민_준비서면.pdf',
+  '2025.04.21_2025개회60026_20250424_윤성준_가압류신청서.pdf',
+  '2025.04.21_2025개회60027_20250424_서예진_답변서.pdf',
+  '2025.04.21_2025개회60028_20250424_장현우_청구취지변경신청서.pdf',
+  '2025.04.22_2025개회60029_20250425_임지원_이의신청서.pdf',
+  '2025.04.22_2025개회60030_20250418_김준호_소송위임장.pdf',
+  '2025.04.15_2025개회60031_20250411_이수진_답변서.pdf',
+  '2025.04.10_2025개회60032_20250405_정재원_준비서면.pdf',
+  '2025.03.30_2025개회60033_20250325_송민석_소장.pdf',
+  '2025.03.25_2025개회60034_20250320_강지혜_의견서.pdf',
+  '2025.03.20_2025개회60035_20250315_임현우_가압류신청서.pdf'
+];
+
+const FileDownloadPage = () => {
+  const [files, setFiles] = useState([]);
+  const [filteredFiles, setFilteredFiles] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [handlerFilter, setHandlerFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('day'); // 'month', 'week', 'day', 'all'
+  const [currentDate, setCurrentDate] = useState(new Date());
+  
+  const itemsPerPage = 30; // 한 페이지에 10행 x 3열 = 30개 파일
+
+  // 실제 구현에서는 API에서 파일 데이터를 가져옴
+  useEffect(() => {
+    // 가상의 API 호출 시뮬레이션
+    setTimeout(() => {
+      setFiles(sampleFiles);
+      applyFilters(sampleFiles, searchTerm, handlerFilter, viewMode);
+      setIsLoading(false);
+    }, 1000);
+  }, []);
+
+  // 파일명에서 수신일자 추출 (사건번호 다음에 오는 날짜)
+  const getReceiveDate = (filename) => {
+    const parts = filename.split('_');
+    if (parts.length > 2) {
+      return parts[2] || ''; // 사건번호 다음 위치
+    }
+    return '';
+  };
+
+  // 파일명에서 발신일자 추출 (첫 부분)
+  const getSendDate = (filename) => {
+    const parts = filename.split('_');
+    return parts[0] || '';
+  };
+
+  // 파일명에서 담당자 추출
+  const getFileHandler = (filename) => {
+    const parts = filename.split('_');
+    return parts[3] || '';
+  };
+
+  // 중복 없는 담당자 목록 가져오기
+  const getUniqueHandlers = () => {
+    const handlers = files.map(filename => getFileHandler(filename));
+    return [...new Set(handlers)].filter(Boolean).sort();
+  };
+
+  // 날짜가 현재 선택된 보기 모드에 맞는지 확인
+  const isDateInViewMode = (dateStr, mode, baseDate) => {
+    if (!dateStr || dateStr.length !== 8) return false;
+    
+    const year = dateStr.substring(0, 4);
+    const month = dateStr.substring(4, 6);
+    const day = dateStr.substring(6, 8);
+    
+    const fileDate = new Date(`${year}-${month}-${day}`);
+    const checkDate = baseDate || new Date();
+    
+    switch(mode) {
+      case 'month':
+        // 같은 연도, 같은 월인지 확인
+        return fileDate.getFullYear() === checkDate.getFullYear() && 
+               fileDate.getMonth() === checkDate.getMonth();
+      case 'week': {
+        // 선택된 주의 시작일과 종료일 계산
+        const startOfWeek = new Date(checkDate);
+        startOfWeek.setDate(checkDate.getDate() - checkDate.getDay()); // 일요일부터 시작
+        
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6); // 토요일까지
+        
+        return fileDate >= startOfWeek && fileDate <= endOfWeek;
+      }
+      case 'day':
+        // 해당 날짜인지 확인 
+        return fileDate.getFullYear() === checkDate.getFullYear() && 
+               fileDate.getMonth() === checkDate.getMonth() && 
+               fileDate.getDate() === checkDate.getDate();
+      default:
+        return true;
+    }
+  };
+
+  // 모든 필터 적용
+  const applyFilters = (fileList, search, handler, mode, date) => {
+    let result = [...fileList];
+    
+    // 검색어 필터
+    if (search) {
+      result = result.filter(filename => 
+        filename.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    
+    // 담당자 필터
+    if (handler) {
+      result = result.filter(filename => 
+        getFileHandler(filename) === handler
+      );
+    }
+    
+    // 보기 모드 필터
+    if (mode !== 'all') {
+      result = result.filter(filename => {
+        const receiveDate = getReceiveDate(filename);
+        return isDateInViewMode(receiveDate, mode, date);
+      });
+    }
+    
+    setFilteredFiles(result);
+    setCurrentPage(1); // 필터링 후 첫 페이지로 이동
+  };
+
+  // 검색 및 필터 적용
+  const handleSearch = () => {
+    applyFilters(files, searchTerm, handlerFilter, viewMode, currentDate);
+  };
+
+  // 엔터키로 검색 가능하게
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  // 담당자 필터 변경
+  const handleHandlerChange = (e) => {
+    setHandlerFilter(e.target.value);
+    applyFilters(files, searchTerm, e.target.value, viewMode, currentDate);
+  };
+
+  // 보기 모드 변경 처리
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    applyFilters(files, searchTerm, handlerFilter, mode, currentDate);
+  };
+  
+  // 날짜 이동 (이전/다음)
+  const changeDate = (amount) => {
+    const newDate = new Date(currentDate);
+    
+    if (viewMode === 'day') {
+      newDate.setDate(newDate.getDate() + amount);
+    } else if (viewMode === 'week') {
+      newDate.setDate(newDate.getDate() + (amount * 7));
+    } else if (viewMode === 'month') {
+      newDate.setMonth(newDate.getMonth() + amount);
+    }
+    
+    setCurrentDate(newDate);
+    applyFilters(files, searchTerm, handlerFilter, viewMode, newDate);
+  };
+
+  // 페이지 관련 계산
+  const totalPages = Math.ceil(filteredFiles.length / itemsPerPage);
+  const currentFiles = filteredFiles.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  
+  // 개별 파일 다운로드
+  const downloadFile = (filename) => {
+    alert(`${filename} 다운로드`);
+    // 실제 구현에서는 파일을 서버에서 다운로드
+  };
+
+  // 날짜 포맷팅 (YYYYMMDD → YYYY.MM.DD)
+  const formatDate = (dateStr) => {
+    if (!dateStr || dateStr.length !== 8) return dateStr;
+    
+    const year = dateStr.substring(0, 4);
+    const month = dateStr.substring(4, 6);
+    const day = dateStr.substring(6, 8);
+    
+    return `${year}.${month}.${day}`;
+  };
+  
+  // 날짜 표시 (주간, 월간 뷰용)
+  const getDateRangeDisplay = () => {
+    if (viewMode === 'month') {
+      return `${currentDate.getFullYear()}년 ${currentDate.getMonth() + 1}월`;
+    } else if (viewMode === 'week') {
+      const startOfWeek = new Date(currentDate);
+      startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+      
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      
+      const startMonth = startOfWeek.getMonth() + 1;
+      const endMonth = endOfWeek.getMonth() + 1;
+      const startDay = startOfWeek.getDate();
+      const endDay = endOfWeek.getDate();
+      
+      if (startOfWeek.getFullYear() !== endOfWeek.getFullYear()) {
+        return `${startOfWeek.getFullYear()}년 ${startMonth}월 ${startDay}일 - ${endOfWeek.getFullYear()}년 ${endMonth}월 ${endDay}일`;
+      } else if (startMonth !== endMonth) {
+        return `${startOfWeek.getFullYear()}년 ${startMonth}월 ${startDay}일 - ${endMonth}월 ${endDay}일`;
+      } else {
+        return `${startOfWeek.getFullYear()}년 ${startMonth}월 ${startDay}일 - ${endDay}일`;
+      }
+    } else if (viewMode === 'day') {
+      return `${currentDate.getFullYear()}년 ${currentDate.getMonth() + 1}월 ${currentDate.getDate()}일`;
+    }
+    return '';
+  };
+  
+  // 월간 달력 렌더링
+  const renderMonthCalendar = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    
+    // 해당 월의 첫 날짜와 마지막 날짜
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    // 월 시작 전 빈 칸
+    const firstDayOfWeek = firstDay.getDay(); // 0: 일요일, 6: 토요일
+    
+    // 총 주 수 계산
+    const totalWeeks = Math.ceil((firstDayOfWeek + lastDay.getDate()) / 7);
+    
+    // 달력 데이터 생성
+    const calendarDays = [];
+    
+    // 전체 날짜 채우기 (이전 달, 현재 달, 다음 달)
+    for (let i = 0; i < totalWeeks * 7; i++) {
+      const dayIndex = i - firstDayOfWeek + 1;
+      const date = new Date(year, month, dayIndex);
+      
+      calendarDays.push({
+        date,
+        day: date.getDate(),
+        month: date.getMonth(),
+        current: date.getMonth() === month
+      });
+    }
+    
+    // 달력 주 단위로 나누기
+    const calendarWeeks = [];
+    for (let i = 0; i < totalWeeks; i++) {
+      calendarWeeks.push(calendarDays.slice(i * 7, (i + 1) * 7));
+    }
+    
+    // 오늘 날짜
+    const today = new Date();
+    const isToday = (date) => 
+      date.getDate() === today.getDate() && 
+      date.getMonth() === today.getMonth() && 
+      date.getFullYear() === today.getFullYear();
+    
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div className="mb-4 flex justify-between items-center">
+          <h3 className="text-lg font-semibold">{getDateRangeDisplay()}</h3>
+          <div className="flex space-x-2">
+            <button 
+              className="p-2 rounded-full hover:bg-gray-100"
+              onClick={() => changeDate(-1)}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button 
+              className="p-2 rounded-full hover:bg-gray-100"
+              onClick={() => changeDate(1)}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-7 gap-2">
+          {['일', '월', '화', '수', '목', '금', '토'].map(day => (
+            <div key={day} className="text-center font-medium py-2">{day}</div>
+          ))}
+          
+          {calendarWeeks.map((week, weekIndex) => 
+            week.map((day, dayIndex) => (
+              <div 
+                key={`${weekIndex}-${dayIndex}`}
+                className={`aspect-square flex items-center justify-center rounded-full text-sm cursor-pointer
+                  ${!day.current ? 'text-gray-400' : ''}
+                  ${isToday(day.date) ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100'}
+                `}
+                onClick={() => {
+                  setCurrentDate(day.date);
+                  setViewMode('day');
+                  applyFilters(files, searchTerm, handlerFilter, 'day', day.date);
+                }}
+              >
+                {day.day}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+  
+  // 주간 달력 렌더링
+  const renderWeekCalendar = () => {
+    // 선택된 주의 시작일과 종료일 계산
+    const startOfWeek = new Date(currentDate);
+    startOfWeek.setDate(currentDate.getDate() - currentDate.getDay()); // 일요일부터 시작
+    
+    const weekDays = [];
+    
+    // 주간 달력 데이터 생성
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+      weekDays.push(date);
+    }
+    
+    // 오늘 날짜
+    const today = new Date();
+    const isToday = (date) => 
+      date.getDate() === today.getDate() && 
+      date.getMonth() === today.getMonth() && 
+      date.getFullYear() === today.getFullYear();
+    
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div className="mb-4 flex justify-between items-center">
+          <h3 className="text-lg font-semibold">{getDateRangeDisplay()}</h3>
+          <div className="flex space-x-2">
+            <button 
+              className="p-2 rounded-full hover:bg-gray-100"
+              onClick={() => changeDate(-1)}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button 
+              className="p-2 rounded-full hover:bg-gray-100"
+              onClick={() => changeDate(1)}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-7 gap-2">
+          {['일', '월', '화', '수', '목', '금', '토'].map((day, i) => (
+            <div key={day} className="text-center">
+              <div className="font-medium mb-2">{day}</div>
+              <div 
+                className={`
+                  mx-auto aspect-square w-12 flex items-center justify-center rounded-full text-sm cursor-pointer
+                  ${isToday(weekDays[i]) ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100'}
+                `}
+                onClick={() => {
+                  setCurrentDate(weekDays[i]);
+                  setViewMode('day');
+                  applyFilters(files, searchTerm, handlerFilter, 'day', weekDays[i]);
+                }}
+              >
+                {weekDays[i].getDate()}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {weekDays[i].getMonth() + 1}월
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="container mx-auto p-6 max-w-6xl">
+      <div className="mb-8">
+        <div className="flex justify-between items-center border-b pb-4">
+          <h1 className="text-3xl font-bold text-gray-800">문서 파일 다운로드</h1>
+          
+          {/* 우측 상단 탭 */}
+          <div className="flex rounded-lg shadow-sm border overflow-hidden">
+            <button
+              className={`py-2 px-4 text-center font-medium ${
+                viewMode === 'month' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+              onClick={() => handleViewModeChange('month')}
+            >
+              <Calendar className="inline-block h-4 w-4 mr-2" />
+              월간
+            </button>
+            <button
+              className={`py-2 px-4 text-center font-medium ${
+                viewMode === 'week' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+              onClick={() => handleViewModeChange('week')}
+            >
+              <Calendar className="inline-block h-4 w-4 mr-2" />
+              주간
+            </button>
+            <button
+              className={`py-2 px-4 text-center font-medium ${
+                viewMode === 'day' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+              onClick={() => handleViewModeChange('day')}
+            >
+              <Calendar className="inline-block h-4 w-4 mr-2" />
+              일간
+            </button>
+            <button
+              className={`py-2 px-4 text-center font-medium ${
+                viewMode === 'all' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+              onClick={() => handleViewModeChange('all')}
+            >
+              전체
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex flex-wrap mb-6 gap-4">
+        {/* 담당자 필터 */}
+        <div className="w-56">
+          <div className="bg-white rounded-lg overflow-hidden border flex items-center">
+            <Users className="h-5 w-5 text-gray-500 mx-3" />
+            <select
+              className="py-2 outline-none w-full bg-transparent"
+              value={handlerFilter}
+              onChange={handleHandlerChange}
+            >
+              <option value="">모든 담당자</option>
+              {getUniqueHandlers().map(handler => (
+                <option key={handler} value={handler}>{handler}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        
+        {/* 검색 필드 */}
+        <div className="flex-1">
+          <div className="flex bg-white rounded-lg overflow-hidden border">
+            <div className="flex items-center flex-grow">
+              <Search className="h-5 w-5 text-gray-500 mx-3" />
+              <input
+                type="text"
+                placeholder="파일명 검색..."
+                className="py-2 outline-none w-full"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyPress={handleKeyPress}
+              />
+            </div>
+            
+            <button
+              className="px-5 py-2 bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
+              onClick={handleSearch}
+            >
+              검색
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      {/* 날짜 선택 및 캘린더 (월간, 주간일 때만 표시) */}
+      {(viewMode === 'month' || viewMode === 'week') && (
+        <>
+          {viewMode === 'month' && renderMonthCalendar()}
+          {viewMode === 'week' && renderWeekCalendar()}
+        </>
+      )}
+      
+      {/* 현재 보기 모드 표시 */}
+      <div className="mb-4 flex justify-between items-center">
+        <h2 className="text-xl font-medium text-gray-700">
+          {viewMode === 'month' && '이번 달 수신 문서'}
+          {viewMode === 'week' && '이번 주 수신 문서'}
+          {viewMode === 'day' && '오늘 수신 문서'}
+          {viewMode === 'all' && '전체 문서'}
+          {(viewMode === 'day' || viewMode === 'all') && (
+            <span className="ml-2 text-sm text-gray-500 font-normal">
+              {viewMode === 'day' && getDateRangeDisplay()}
+            </span>
+          )}
+        </h2>
+        <div className="text-sm text-gray-600">
+          총 {filteredFiles.length}개 문서
+        </div>
+      </div>
+      
+      {/* 로딩 표시 */}
+      {isLoading ? (
+        <div className="text-center py-12 bg-white rounded-lg shadow">
+          <div className="animate-pulse text-lg text-gray-600">파일 목록을 불러오는 중...</div>
+        </div>
+      ) : filteredFiles.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-lg shadow">
+          <div className="text-lg text-gray-600">
+            {viewMode !== 'all' 
+              ? `선택한 기간에 수신된 문서가 없습니다.` 
+              : `검색 결과가 없습니다.`}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* 파일 카드 그리드 - 고정형으로 한 행에 3개 */}
+          <div className="flex flex-wrap">
+            {currentFiles.map((filename) => {
+              const sendDate = getSendDate(filename);
+              const receiveDate = getReceiveDate(filename);
+              const fileHandler = getFileHandler(filename);
+              
+              return (
+                <div 
+                  key={filename} 
+                  className="w-1/3 p-3"
+                >
+                  <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow h-full">
+                    <div className="p-4 border-b border-gray-100 flex items-center space-x-3">
+                      <FileText className="h-6 w-6 text-blue-600" />
+                      <div>
+                        <div className="text-xs text-gray-500">수신일: {formatDate(receiveDate)}</div>
+                        <div className="text-sm font-medium text-gray-900">{fileHandler}</div>
+                      </div>
+                      <button 
+                        className="ml-auto p-2 rounded-full hover:bg-gray-100"
+                        onClick={() => downloadFile(filename)}
+                        title="다운로드"
+                      >
+                        <Download className="h-5 w-5 text-blue-600" />
+                      </button>
+                    </div>
+                    
+                    <div className="p-4">
+                      <p className="text-sm text-gray-700 break-words" title={filename}>
+                        {filename}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* 페이지네이션 */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-10">
+              <button
+                className="mx-1 px-4 py-2 border rounded-md bg-white shadow-sm hover:bg-gray-50 text-gray-800"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(currentPage - 1)}
+              >
+                이전
+              </button>
+              
+              {/* 페이지 번호 */}
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={pageNum}
+                    className={`mx-1 px-4 py-2 border rounded-md shadow-sm ${
+                      currentPage === pageNum ? 'bg-blue-600 text-white' : 'bg-white text-gray-800 hover:bg-gray-50'
+                    }`}
+                    onClick={() => setCurrentPage(pageNum)}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              
+              <button
+                className="mx-1 px-4 py-2 border rounded-md bg-white shadow-sm hover:bg-gray-50 text-gray-800"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(currentPage + 1)}
+              >
+                다음
+              </button>
+            </div>
+          )}
+        </>
+      )}
+      
+      {/* 파일 카운트 */}
+      <div className="mt-6 text-sm text-gray-600 text-center">
+        총 {filteredFiles.length}개 파일 중 {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredFiles.length)}개 표시
+      </div>
+    </div>
+  );
+};
+
+export default FileDownloadPage;

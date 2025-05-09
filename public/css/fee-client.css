@@ -1,0 +1,396 @@
+/* 고객별 수임료 관리 페이지 스타일 */
+
+/* 테이블 헤더 고정 */
+.table-responsive {
+    overflow-x: auto;
+    max-height: 70vh;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* 테이블 스타일 */
+.table {
+    font-size: 0.875rem;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    color: #4b5563;
+    font-weight: 500;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.table-hover tbody tr {
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out;
+    background-color: #ffffff;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+/* 테이블 줄무늬 스타일 제거 */
+.table-striped>tbody>tr:nth-of-type(odd) {
+    background-color: #ffffff;
+}
+
+/* 메모 버튼 스타일 */
+.memo-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 0.25rem;
+    transition: all 0.15s ease-in-out;
+}
+
+.memo-btn:hover {
+    background-color: #e5e7eb;
+}
+
+/* 진행 상태 표시기 */
+.doc-progress {
+    height: 8px;
+    width: 100%;
+    max-width: 96px;
+    background-color: #e9ecef;
+    border-radius: 9999px;
+    position: relative;
+    display: block;
+    margin: 0 auto 0 auto;
+    overflow: hidden;
+}
+
+.doc-progress-bar {
+    height: 100%;
+    border-radius: 9999px;
+    position: absolute;
+    left: 0;
+    transition: width 0.3s ease;
+}
+
+.doc-progress-text {
+    font-size: 12px;
+    display: block;
+    color: #6b7280;
+    white-space: nowrap;
+    text-align: center;
+    line-height: 1.2;
+    margin-top: 2px;
+}
+
+/* 페이지네이션 컴팩트하게 */
+.pagination-sm .page-link {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 0.25rem;
+    margin: 0 2px;
+}
+
+.pagination .page-link {
+    color: #3b82f6;
+    transition: all 0.15s ease;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+/* 모달 처리 */
+.modal-xl {
+    max-width: 90%;
+}
+
+.modal-header {
+    background-color: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header .modal-title {
+    font-weight: 600;
+    color: #111827;
+}
+
+.modal-footer {
+    background-color: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* 테이블 내 금액 오른쪽 정렬 */
+.table td.text-end, .table th.text-end {
+    text-align: right;
+}
+
+/* 상태 뱃지 스타일 */
+.badge-status {
+    padding: 0.35em 0.65em;
+    border-radius: 0.9rem;
+    font-size: 0.75em;
+    font-weight: 500;
+    display: inline-block;
+    transition: all 0.15s ease;
+}
+
+.badge-completed {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.badge-pending {
+    background-color: #fff3cd;
+    color: #664d03;
+}
+
+.badge-overdue {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+.badge-document-default {
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+.badge-document-requested {
+    background-color: #cfe2ff;
+    color: #084298;
+}
+
+.badge-document-completed {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+/* 롤러블 행 스타일 */
+.detail-row {
+    background-color: #ffffff;
+}
+
+.client-detail-container {
+    padding: 16px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #ffffff;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* 필터 영역 스타일 */
+.filter-area, .search-area {
+    padding: 1rem;
+    background-color: #f9fafb;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 1rem;
+}
+
+.form-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #4b5563;
+    margin-bottom: 0.5rem;
+}
+
+/* 버튼 스타일 */
+.btn-primary {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+    transition: all 0.15s ease;
+}
+
+.btn-primary:hover {
+    background-color: #2563eb;
+    border-color: #2563eb;
+}
+
+.payment-status-btn.btn-warning {
+    background-color: #fff3cd;
+    color: #664d03;
+    border-color: #ffeeba;
+}
+
+.payment-status-btn.btn-danger {
+    background-color: #f8d7da;
+    color: #842029;
+    border-color: #f5c2c7;
+}
+
+.payment-status-btn.btn-success {
+    background-color: #d1e7dd;
+    color: #0f5132;
+    border-color: #badbcc;
+}
+
+/* 카드 스타일 */
+.card {
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border: none;
+}
+
+.card-header {
+    background-color: white;
+    border-bottom: 1px solid rgba(0,0,0,0.125);
+    padding: 1rem 1.25rem;
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+}
+
+.card-header h5 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 0;
+}
+
+/* 반응형 처리 */
+@media (max-width: 992px) {
+    .modal-xl {
+        max-width: 95%;
+    }
+}
+
+@media (max-width: 768px) {
+    .table-responsive {
+        max-height: 60vh;
+    }
+    
+    .client-detail-container {
+        padding: 12px 16px;
+    }
+}
+
+/* 사건진행현황 배지 스타일 */
+.badge-state-default {
+    background-color: #e2e3e5;
+    color: #41464b;
+}
+
+/* 단계별 색상 - 사건 유형과 관계없이 통일 */
+/* 초기단계 - 초록색 계열 파스텔톤 */
+.badge-state-initial {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+/* 중기단계 - 노란색 계열 파스텔톤 */
+.badge-state-middle {
+    background-color: #fff3cd;
+    color: #664d03;
+}
+
+/* 말기단계 - 붉은색 계열 파스텔톤 */
+.badge-state-final {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+/* 이전 유형별 스타일은 더 이상 사용하지 않음 */
+/* 개인회생 단계별 색상 */
+.badge-state-revival-1,
+.badge-state-bankruptcy-1 {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.badge-state-revival-2,
+.badge-state-bankruptcy-2 {
+    background-color: #fff3cd;
+    color: #664d03;
+}
+
+.badge-state-revival-3,
+.badge-state-bankruptcy-3 {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+/* 캘린더 페이지와 일관성을 위한 배지 스타일 */
+.badge {
+    display: inline-block;
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+    font-weight: 500;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.9rem;
+}
+
+/* 파스텔톤 배경색 스타일 */
+.bg-soft-success {
+    background-color: rgba(25, 135, 84, 0.15) !important;
+}
+
+.bg-soft-danger {
+    background-color: rgba(220, 53, 69, 0.15) !important;
+}
+
+/* 호버 효과 유지 */
+.bg-soft-success:hover {
+    background-color: rgba(25, 135, 84, 0.25) !important;
+}
+
+.bg-soft-danger:hover {
+    background-color: rgba(220, 53, 69, 0.25) !important;
+}
+
+/* 완납/계약해지 행 배경색 스타일 */
+.table-hover tbody tr.client-row.bg-soft-success,
+.table-hover tr.client-row.bg-soft-success,
+tr.client-row.bg-soft-success,
+tr.client-row.green-row,
+tr.client-row.table-success,
+table#clientsTable tr.bg-soft-success {
+    background-color: rgba(25, 135, 84, 0.15) !important;
+}
+
+.table-hover tbody tr.client-row.bg-soft-danger,
+.table-hover tr.client-row.bg-soft-danger,
+tr.client-row.bg-soft-danger,
+table#clientsTable tr.bg-soft-danger {
+    background-color: rgba(220, 53, 69, 0.15) !important;
+}
+
+/* td 셀에도 배경 적용 */
+.table-hover tbody tr.client-row.bg-soft-success td,
+.table-hover tr.client-row.bg-soft-success td,
+tr.client-row.bg-soft-success td,
+tr.client-row.green-row td,
+tr.client-row.table-success td,
+table#clientsTable tr.bg-soft-success td {
+    background-color: rgba(25, 135, 84, 0.15) !important;
+}
+
+.table-hover tbody tr.client-row.bg-soft-danger td,
+.table-hover tr.client-row.bg-soft-danger td,
+tr.client-row.bg-soft-danger td,
+table#clientsTable tr.bg-soft-danger td {
+    background-color: rgba(220, 53, 69, 0.15) !important;
+}
+
+/* 호버 효과 유지 */
+.table-hover tbody tr.client-row.bg-soft-success:hover,
+.table-hover tr.client-row.bg-soft-success:hover,
+tr.client-row.bg-soft-success:hover,
+tr.client-row.green-row:hover,
+tr.client-row.table-success:hover,
+table#clientsTable tr.bg-soft-success:hover,
+.table-hover tbody tr.client-row.bg-soft-success:hover td,
+.table-hover tr.client-row.bg-soft-success:hover td,
+tr.client-row.bg-soft-success:hover td,
+tr.client-row.green-row:hover td,
+tr.client-row.table-success:hover td,
+table#clientsTable tr.bg-soft-success:hover td {
+    background-color: rgba(25, 135, 84, 0.25) !important;
+}
+
+.table-hover tbody tr.client-row.bg-soft-danger:hover,
+.table-hover tr.client-row.bg-soft-danger:hover,
+tr.client-row.bg-soft-danger:hover,
+table#clientsTable tr.bg-soft-danger:hover,
+.table-hover tbody tr.client-row.bg-soft-danger:hover td,
+.table-hover tr.client-row.bg-soft-danger:hover td,
+tr.client-row.bg-soft-danger:hover td,
+table#clientsTable tr.bg-soft-danger:hover td {
+    background-color: rgba(220, 53, 69, 0.25) !important;
+} 
